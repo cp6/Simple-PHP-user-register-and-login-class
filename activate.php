@@ -4,10 +4,10 @@ if (isset($_GET['key'])) {
     $activate = new doRegisterAttempt('', '', '');
     $verify = $activate->verifyAccount($_GET['key']);
     if ($verify) {
-        echo "Account activated";
+        $verify->outputString("Account activated");
     } else {
-        echo "Key is invalid";
+        $verify->outputString("Key is invalid");
     }
 } else {//No key
-    echo "Key is required";
+    $verify->outputString("Key is required");
 }

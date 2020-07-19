@@ -7,29 +7,29 @@
 class configAndConnect
 {
     //Website full domain URL
-    CONST URL = 'http://127.0.0.1/view_beta/';
+    const URL = 'http://127.0.0.1/Simple-PHP-user-register-and-login-class/';
 
     //Website name
-    CONST WEBSITE_NAME = '';
+    const WEBSITE_NAME = '';
 
     //Failed attempts before account temp locked for 10 mins
-    CONST FAIL_ATTEMPTS_ALLOWED = '4';
+    const FAIL_ATTEMPTS_ALLOWED = '4';
 
     //Accounts must be activated from email
-    CONST REQUIRE_EMAIL_ACTIVATION = true;
+    const REQUIRE_EMAIL_ACTIVATION = true;
 
     //Settings for email activation sender
-    CONST EMAIL_ADDRESS = '';
-    CONST EMAIL_HOST = '';
-    CONST SMTP_PORT = '';
-    CONST SMTP_USERNAME = '';
-    CONST SMTP_PASSWORD = '';
+    const EMAIL_ADDRESS = '';
+    const EMAIL_HOST = '';
+    const SMTP_PORT = '';
+    const SMTP_USERNAME = '';
+    const SMTP_PASSWORD = '';
 
     //MySQL server connection details
-    CONST DB_HOSTNAME = '127.0.0.1';
-    CONST DB_NAME = 'auth';
-    CONST DB_USERNAME = 'root';
-    CONST DB_PASSWORD = '';
+    const DB_HOSTNAME = '127.0.0.1';
+    const DB_NAME = 'auth';
+    const DB_USERNAME = 'root';
+    const DB_PASSWORD = '';
 
     public function db_connect(): object
     {
@@ -39,6 +39,21 @@ class configAndConnect
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC);
         return new PDO("mysql:host=" . self::DB_HOSTNAME . ";dbname=" . self::DB_NAME . ";charset=utf8mb4", self::DB_USERNAME, self::DB_PASSWORD, $options);
     }
+
+    public function issetCheck(string $value): bool
+    {//Makes isset check on POST's shorter
+        if (isset($_POST['' . $value . ''])) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function outputString(string $string)
+    {//Glorified echo
+        echo $string;
+    }
+
 }
 
 /*
@@ -53,7 +68,7 @@ class doRegisterAttempt extends configAndConnect
     private int $uid;
     private string $key;
 
-    public function __construct($username, $password, $email)
+    public function __construct(string $username, string $password, string $email)
     {
         $this->username = $username;
         $this->stated_password = $password;
@@ -169,7 +184,7 @@ class doRegisterAttempt extends configAndConnect
         $mail->send();
     }
 
-    public function verifyAccount($key): bool
+    public function verifyAccount(string $key): bool
     {
         $db = $this->db_connect();
         $select = $db->prepare("SELECT `uid` FROM `activate_keys` WHERE `key` = :key LIMIT 1;");
@@ -202,7 +217,7 @@ class doLoginAttempt extends configAndConnect
     private string $ip_address;
     public int $uid;
 
-    public function __construct($username, $password)
+    public function __construct(string $username, string $password)
     {
         $this->username = $username;
         $this->stated_password = $password;
@@ -267,7 +282,7 @@ class doLoginAttempt extends configAndConnect
         return $select->fetch()['the_count'];//login fails for IP in last 10 minutes
     }
 
-    public function attemptLogin($redirect_to = '')
+    public function attemptLogin(string $redirect_to = '')
     {
         if ($this->getRecentFailCount() >= configAndConnect::FAIL_ATTEMPTS_ALLOWED) {//IP has had X or more fails in last 10 mins
             return "IP Address has been locked for 10 minutes";
@@ -307,7 +322,7 @@ class sessionManage extends configAndConnect
         }
     }
 
-    public function checkIsLoggedIn($redirect = true, $redirect_to = "" . configAndConnect::URL . "login/"): bool
+    public function checkIsLoggedIn(bool $redirect = true, string $redirect_to = "" . configAndConnect::URL . "login/"): bool
     {
         $this->sessionStartIfNone();//Start session if none already started
         if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
@@ -322,7 +337,7 @@ class sessionManage extends configAndConnect
         }
     }
 
-    public function redirectIfLoggedIn($redirect_to = "" . configAndConnect::URL . "account/")
+    public function redirectIfLoggedIn(string $redirect_to = "" . configAndConnect::URL . "account/")
     {
         $this->sessionStartIfNone();//Start session if none already started
         if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
@@ -332,7 +347,7 @@ class sessionManage extends configAndConnect
         }
     }
 
-    public function logout($redirect = false, $redirect_to = ''): bool
+    public function logout(bool $redirect = false, string $redirect_to = ''): bool
     {
         $this->sessionStartIfNone();
         if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {//Logged in
@@ -353,7 +368,7 @@ class sessionManage extends configAndConnect
     }
 
 
-    public function IsAccountActivated(): bool
+    public function isAccountActivated(): bool
     {
         $db = (new configAndConnect)->db_connect();
         $select = $db->prepare("SELECT `activated` FROM `users` WHERE `uid` = :uid LIMIT 1;");
@@ -373,27 +388,61 @@ class sessionManage extends configAndConnect
 
 class accountDetails extends configAndConnect
 {
-    public int $uid;
-
-    public function __construct()
-    {
-        $this->uid = $_SESSION['user'];
-    }
-
     public function accountData(): array
     {
         $db = (new configAndConnect)->db_connect();
-        $select = $db->prepare("SELECT `username`, `created`, `login_count`, `login_fails`, `last_fail`, `email` FROM `users` WHERE `uid` = :uid LIMIT 1;");
-        $select->execute(array(':uid' => $this->uid));
-        $result = $select->fetch();
-        return array(
-            'uid' => $this->uid,
-            'username' => $result['username'],
-            'created' => $result['created'],
-            'login_count' => $result['login_count'],
-            'login_fails' => $result['login_fails'],
-            'last_fail' => $result['last_fail'],
-            'email' => $result['email']
-        );
+        $select = $db->prepare("SELECT `uid`, `username`, `created`, `login_count`, `login_fails`, `last_fail`, `email` FROM `users` WHERE `uid` = :uid LIMIT 1;");
+        $select->execute(array(':uid' => $_SESSION['user']));
+        return $select->fetchAll(PDO::FETCH_ASSOC)[0];
     }
+}
+
+class htmlStructure extends configAndConnect
+{
+    public function loginForm()
+    {
+        ?>
+        <form method="post" action="login_handle.php">
+            <label for="THE_username">Your username:</label>
+            <input class="username" id="username" name="username" minlength="3" maxlength="24" type="text">
+            <input type="text" minlength="3" maxlength="24" aria-label="THE_username" class="form-control"
+                   name="THE_username"
+                   id="THE_username"
+                   aria-describedby="THE_username"
+                   placeholder="Your Username" required>
+            <label for="THE_password">Your password:</label>
+            <input type="password" minlength="8" maxlength="54" aria-label="password" class="form-control"
+                   name="THE_password"
+                   id="THE_password"
+                   placeholder="Password" required>
+            <button type="submit" value="submit" class="btn">Login</button>
+        </form>
+        <?php
+    }
+
+    public function registerForm()
+    {
+        ?>
+        <form method="post" action="register_handle.php">
+            <label for="THE_username">Create username:</label>
+            <input class="username" id="username" name="username" minlength="3" maxlength="24" type="text">
+            <input type="text" minlength="3" maxlength="24" aria-label="username" class="form-control"
+                   name="THE_username"
+                   id="THE_username"
+                   aria-describedby="username"
+                   placeholder="Create Username" required>
+            <label for="THE_email">Your Email:</label>
+            <input type="email" minlength="6" maxlength="60" aria-label="email" class="form-control" name="THE_email"
+                   id="THE_email"
+                   aria-describedby="email"
+                   placeholder="Your email" required>
+            <label for="THE_password">Create password:</label>
+            <input type="password" minlength="8" maxlength="54" aria-label="password" class="form-control"
+                   name="THE_password"
+                   id="THE_password" placeholder="Password" required>
+            <button type="submit" value="submit" class="btn">Create</button>
+        </form>
+        <?php
+    }
+
 }
