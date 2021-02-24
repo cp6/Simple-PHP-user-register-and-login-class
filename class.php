@@ -182,7 +182,7 @@ class doRegisterAttempt extends configAndConnect
         $mail->send();
     }
 
-    protected function verifyAccount(string $key): bool
+    public function verifyAccount(string $key): bool
     {
         $select = $this->db->prepare("SELECT `uid` FROM `activate_keys` WHERE `key` = ? LIMIT 1;");
         $select->execute([$key]);
