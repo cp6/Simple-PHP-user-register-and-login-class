@@ -163,14 +163,23 @@ class doRegisterAttempt extends configAndConnect
 
     protected function sendVerifyEmail(): void
     {
-        require_once('PHPMailer/PHPMailer.php');
-        require_once('PHPMailer/SMTP.php');
+        require('PHPMailer/PHPMailer.php');
+        require('PHPMailer/Exception.php');
+        require('PHPMailer/SMTP.php');
         $mail = new PHPMailer\PHPMailer\PHPMailer();
         $mail->IsSMTP();
         $mail->CharSet = 'UTF-8';
         $mail->Host = configAndConnect::EMAIL_HOST;
         $mail->SMTPAuth = true;
+        $mail->SMTPSecure = 'ssl';
         $mail->Port = configAndConnect::SMTP_PORT;
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
         $mail->Username = configAndConnect::SMTP_USERNAME;
         $mail->Password = configAndConnect::SMTP_PASSWORD;
         $mail->setFrom(configAndConnect::EMAIL_ADDRESS, configAndConnect::WEBSITE_NAME);
